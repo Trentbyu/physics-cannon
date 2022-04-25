@@ -7,10 +7,13 @@
  http://simpson.edu/computer-science/
 """
 from cmath import pi
+from ctypes.wintypes import RGB
 import pygame
 import random
 import math
- 
+
+from PIL import Image
+
 # Define some colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -18,9 +21,10 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
  
 SCREEN_WIDTH = 700
-SCREEN_HEIGHT = 400
+SCREEN_HEIGHT = 500
 # --- Classes
- 
+pygame.init()
+screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
  
 
 # Load image
@@ -35,6 +39,12 @@ cannonball = pygame.transform.scale(image, DEFAULT_IMAGE_SIZE)
 image = pygame.image.load('cannon.jpg')
 DEFAULT_IMAGE_SIZE = (20, 20)
 rifle = pygame.transform.scale(image, DEFAULT_IMAGE_SIZE)
+
+
+
+image = pygame.image.load('rod.png')
+DEFAULT_IMAGE_SIZE = (50, 100)
+rod_pic = pygame.transform.scale(image, DEFAULT_IMAGE_SIZE)
 
 class Block(pygame.sprite.Sprite):
     """ This class represents the block. """
@@ -103,53 +113,74 @@ class Bullet(pygame.sprite.Sprite):
  
         # Calculation the angle in radians between the start points
         # and end points. This is the angle the bullet will travel.
-
         x_diff = dest_x - start_x
         y_diff = dest_y - start_y
-        angle = math.atan2(y_diff, x_diff) * (180/pi)
+        angle = math.atan2(y_diff, x_diff)
  
         # Taking into account the angle, calculate our change_x
         # and change_y. Velocity is how fast the bullet travels.
-        velocity = 2
-        self.change_x = math.cos(angle) * velocity *.2
-        self.change_y = math.sin(angle) * velocity *.2 
-
+        velocity = 5
+        self.change_x = math.cos(angle) * velocity 
+        self.change_y = math.sin(angle) * velocity 
         
  
     def update(self):
         """ Move the bullet. """
  
         # The floating point x and y hold our more accurate location.
-        x1 = [0]
-        y1 = [0]
-        for x in range(0,100):
-            c= x1[x-1] + self.change_y - 5 * .4
-            b = y1[x-1] + self.change_x 
-            x1.append(c)
-            y1.append(b)
-
-        print(x1)
-
-        # The rect.x and rect.y are converted to integers.
-        self.rect.y = x1[50]
-        self.rect.x = y1[50]
-        print(self.rect.y)
+       
+      
+        if self.rect.x > 0 or self.rect.x < 700 :
+            
+            self.floating_point_x += self.change_x
+            self.rect.x = int(self.floating_point_x)
+       
         # If the bullet flies of the screen, get rid of it.
-        """ if self.rect.x < -5 or self.rect.x > SCREEN_WIDTH :
-            self.kill()"""
+        if self.rect.x < 0 or self.rect.x > 700 :
+            
+            self.floating_point_x -= self.change_x           
+            self.rect.x = int(self.floating_point_x)
+
+        if self.rect.x > 0 or self.rect.y < 500 :
+            
+            self.floating_point_y += self.change_y            
+            self.rect.y = int(self.floating_point_y)
+       
+        # If the bullet flies of the screen, get rid of it.
+        if self.rect.y < 0 or self.rect.y > 500 :
+            
+            self.floating_point_y -= self.change_y
+            self.rect.y= int(self.floating_point_y)
+ 
+         
+
+    
+    
  
  
+
+class rod(pygame.sprite.Sprite):
+       
+       def __init__(self):
+        """ Set up the player on creation. """
+        # Call the parent class (Sprite) constructor
+        super().__init__()
  
+        self.image = rod_pic
+       
+        
+        self.rect = pygame.Rect(-500, -200, 20,20)
+
  
  
 # --- Create the window
  
 # Initialize Pygame
-pygame.init()
+
  
 # Set the height and width of the screen
  
-screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+
  
 # --- Sprite lists
  
@@ -162,7 +193,10 @@ block_list = pygame.sprite.Group()
  
 # List of each bullet
 bullet_list = pygame.sprite.Group()
- 
+
+rod_list = pygame.sprite.Group()
+Rod = rod()
+rod_list.add(Rod)
 # --- Create the sprites
  
 for i in range(50):
@@ -170,7 +204,7 @@ for i in range(50):
     block = Block( target)
  
     # Set a random location for the block
-    block.rect.x = random.randrange(SCREEN_WIDTH)
+    block.rect.x = random.randrange(700)
     block.rect.y = random.randrange(SCREEN_HEIGHT - 50)
  
     # Add the block to the list of objects
@@ -180,6 +214,7 @@ for i in range(50):
 # Create a red player block
 player = Player()
 player_group.add(player)
+
  
 # Loop until the user clicks the close button.
 done = False
@@ -191,6 +226,8 @@ score = 0
  
 player.rect.x = 0
 player.rect.y = SCREEN_HEIGHT - 25
+Rod.rect.x = 500
+Rod.rect.y = SCREEN_HEIGHT/2
  
 # -------- Main Program Loop -----------
 while not done:
@@ -219,12 +256,14 @@ while not done:
             # Add the bullet to the lists
             all_sprites_list.add(bullet)
             bullet_list.add(bullet)
+            
  
     # --- Game logic
  
     # Call the update() method on all the sprites
-    all_sprites_list.update()
 
+  
+    all_sprites_list.update()
     for players in player_group:
         players.roate(player.rect.x, player.rect.y, mouse_x, mouse_y)
     # Calculate mechanics for each bullet
@@ -251,11 +290,12 @@ while not done:
     # Draw all the spites
     all_sprites_list.draw(screen)
     player_group.draw(screen)
+    rod_list.draw(screen)
  
     # Go ahead and update the screen with what we've drawn.
     pygame.display.flip()
  
     # --- Limit to 20 frames per second
-    clock.tick(30)
+    clock.tick(60)
  
 pygame.quit()
